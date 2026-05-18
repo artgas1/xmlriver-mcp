@@ -1,0 +1,170 @@
+name: Publish & Fan-Out to MCP Registries
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish-pypi:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          python-version: '3.12'
+
+      - id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - run: uv build
+
+      - name: Publish to PyPI
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: uv publish
+
+      - run: sleep 60
+
+  publish-mcp-registry:
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mcp-publisher
+        run: |
+          PLATFORM=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${PLATFORM}_${ARCH}.tar.gz" | tar xz mcp-publisher
+          chmod +x mcp-publisher
+
+      - name: Bump version in server.json
+        env:
+          VERSION: ${{ needs.publish-pypi.outputs.version }}
+        run: |
+          jq --arg v "$VERSION" '.version = $v | .packages[0].version = $v' server.json > server.json.tmp
+          mv server.json.tmp server.json
+          cat server.json
+
+      - name: Login with OIDC
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish
+        run: ./mcp-publisher publish
+
+  add-glama-topics:
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add mcp topics for Glama crawler
+        env:
+          GH_TOKEN: ${{ secrets.MCP_FAN_OUT_TOKEN }}
+        run: |
+          gh repo edit ${{ github.repository }} --add-topic mcp || true
+          gh repo edit ${{ github.repository }} --add-topic model-context-protocol || true
+
+  verify-install:
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: astral-sh/setup-uv@v3
+        with:
+          python-version: '3.12'
+      - name: Smoke install from PyPI
+        env:
+          VERSION: ${{ needs.publish-pypi.outputs.version }}
+        run: |
+          uvx --refresh --from "xmlriver-mcp==${VERSION}" python -c "import xmlriver_mcp; print('OK', xmlriver_mcp.__version__)"
+
+  awesome-mcp-pr:
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check if PR already opened
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.MCP_FAN_OUT_TOKEN }}
+        run: |
+          # Search for any existing PR в awesome-mcp от artgas1
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+          EXISTING=$(gh pr list \
+            --repo punkpeye/awesome-mcp-servers \
+            --search "$OWNER/$REPO in:title" \
+            --state all \
+            --json number,state \
+            --limit 5)
+          if echo "$EXISTING" | jq -e 'length > 0' >/dev/null; then
+            echo "Already submitted: $EXISTING"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fork + clone + insert + open PR
+        if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.MCP_FAN_OUT_TOKEN }}
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+          DESC=$(jq -r '.description' server.json)
+          ENTRY="- [${OWNER}/${REPO}](https://github.com/${OWNER}/${REPO}) 🐍 ☁️ - ${DESC}."
+
+          # Fork (idempotent — succeeds even если уже fork'нут)
+          gh repo fork punkpeye/awesome-mcp-servers --clone=false || true
+
+          # Clone our fork
+          cd /tmp
+          rm -rf awesome-mcp-servers
+          gh repo clone "${OWNER}/awesome-mcp-servers"
+          cd awesome-mcp-servers
+
+          # Sync с upstream
+          git remote add upstream https://github.com/punkpeye/awesome-mcp-servers.git || true
+          git fetch upstream
+          git checkout -b "add-${REPO}-$(date +%Y%m%d)" upstream/main
+
+          # Insert entry через external script
+          python3 "${GITHUB_WORKSPACE}/scripts/insert_awesome_mcp_entry.py" \
+            --readme README.md \
+            --entry "$ENTRY"
+
+          # Если script сказал "already exists" — diff будет пустой
+          if git diff --quiet README.md; then
+            echo "No changes (entry exists or insertion failed)"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "Add ${OWNER}/${REPO}"
+          git push -u origin "add-${REPO}-$(date +%Y%m%d)"
+
+          # Build PR body in a tmp file to avoid markdown bold tripping YAML
+          BODY_FILE=$(mktemp)
+          printf '%s\n' \
+            "Repository: https://github.com/${OWNER}/${REPO}" \
+            "Description: ${DESC}" \
+            "Category: Search and Data Extraction" \
+            > "$BODY_FILE"
+
+          gh pr create \
+            --repo punkpeye/awesome-mcp-servers \
+            --title "Add ${OWNER}/${REPO}" \
+            --body-file "$BODY_FILE"

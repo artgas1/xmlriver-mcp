@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.artgas1/xmlriver-mcp",
+  "description": "Google/Yandex SERP parsing and Yandex Wordstat keyword frequency via XMLRiver XML API",
+  "repository": {
+    "url": "https://github.com/artgas1/xmlriver-mcp",
+    "source": "github"
+  },
+  "version": "0.1.4",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "xmlriver-mcp",
+      "version": "0.1.4",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
