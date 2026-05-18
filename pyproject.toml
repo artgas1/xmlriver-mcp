@@ -1,6 +1,6 @@
 [project]
 name = "xmlriver-mcp"
-version = "0.1.6"
+version = "0.1.7"
 description = "MCP server for XMLRiver — Google/Yandex SERP parsing and Wordstat frequency data via XML API"
 readme = "README.md"
 license = "MIT"

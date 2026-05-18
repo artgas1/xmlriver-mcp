@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] — 2026-05-18
+
+### Fixed
+
+- `server.json` `icons[].sizes` schema — was string, must be array of strings per Official MCP Registry validation. v0.1.6 failed registry publish with `cannot unmarshal string into Go struct field Icon.icons.sizes of type []string`.
+
 ## [0.1.6] — 2026-05-18
 
 ### Added
@@ -40,6 +46,7 @@ Initial public release.
   - Glama crawler topics (`mcp`, `model-context-protocol`)
   - awesome-mcp-servers PR via `scripts/insert_awesome_mcp_entry.py` (idempotent)
 
-[Unreleased]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/artgas1/xmlriver-mcp/releases/tag/v0.1.5
