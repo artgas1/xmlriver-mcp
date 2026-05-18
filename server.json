@@ -6,17 +6,17 @@
     "url": "https://github.com/artgas1/xmlriver-mcp",
     "source": "github"
   },
-  "version": "0.1.6",
+  "version": "0.1.7",
   "icons": [
     {
       "src": "https://raw.githubusercontent.com/artgas1/xmlriver-mcp/main/assets/icon-192.png",
       "mimeType": "image/png",
-      "sizes": "192x192"
+      "sizes": ["192x192"]
     },
     {
       "src": "https://raw.githubusercontent.com/artgas1/xmlriver-mcp/main/assets/icon-48.png",
       "mimeType": "image/png",
-      "sizes": "48x48"
+      "sizes": ["48x48"]
     },
     {
       "src": "https://raw.githubusercontent.com/artgas1/xmlriver-mcp/main/assets/icon.svg",
@@ -27,7 +27,7 @@
     {
       "registryType": "pypi",
       "identifier": "xmlriver-mcp",
-      "version": "0.1.6",
+      "version": "0.1.7",
       "transport": {
         "type": "stdio"
       }
