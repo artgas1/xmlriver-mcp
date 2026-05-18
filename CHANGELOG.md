@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] — 2026-05-18
+
+### Added
+
+- **Icon assets** (`assets/icon-192.png`, `icon-48.png`, `icon.svg`) — minimalist "X" mark on blue gradient. Wired into `server.json` `icons[]` array per SEP-2127 Server Cards spec — appears in Smithery/Glama/Claude Desktop/Cursor catalogs.
+- **Install-action badges** in README header — "Add to Cursor", "Add to VS Code", "Add to Claude Desktop" with deeplink configs.
+- **Downloads badge** (PePy) for at-a-glance adoption signal.
+
 ## [0.1.5] — 2026-05-18
 
 Initial public release.
@@ -32,5 +40,6 @@ Initial public release.
   - Glama crawler topics (`mcp`, `model-context-protocol`)
   - awesome-mcp-servers PR via `scripts/insert_awesome_mcp_entry.py` (idempotent)
 
-[Unreleased]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/artgas1/xmlriver-mcp/releases/tag/v0.1.5

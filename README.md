@@ -1,10 +1,19 @@
+<p align="center">
+  <img src="assets/icon.svg" width="96" alt="xmlriver-mcp logo">
+</p>
+
 # `xmlriver-mcp`
 
 > MCP server for [XMLRiver](https://xmlriver.com) — Google/Yandex SERP parsing and Yandex Wordstat keyword frequency data via XML API.
 
 mcp-name: io.github.artgas1/xmlriver-mcp
 
+[![Add to Cursor](https://img.shields.io/badge/Add_to-Cursor-000000?logo=cursor&logoColor=white)](cursor://anysphere.cursor-deeplink/mcp/install?name=xmlriver&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJ4bWxyaXZlci1tY3AiXSwiZW52Ijp7IlhNTFJJVkVSX1VTRVIiOiI8eW91cl91c2VyX2lkPiIsIlhNTFJJVkVSX0tFWSI6Ijx5b3VyX2FwaV9rZXk+In19)
+[![Add to VS Code](https://img.shields.io/badge/Add_to-VS_Code-007ACC?logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22xmlriver-mcp%22%5D%2C%22env%22%3A%7B%22XMLRIVER_USER%22%3A%22%3Cyour_user_id%3E%22%2C%22XMLRIVER_KEY%22%3A%22%3Cyour_api_key%3E%22%7D%7D)
+[![Add to Claude Desktop](https://img.shields.io/badge/Add_to-Claude_Desktop-D97757?logo=anthropic&logoColor=white)](https://claude.ai/download)
+
 [![PyPI](https://img.shields.io/pypi/v/xmlriver-mcp.svg)](https://pypi.org/project/xmlriver-mcp/)
+[![Downloads](https://static.pepy.tech/badge/xmlriver-mcp/month)](https://pepy.tech/project/xmlriver-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
