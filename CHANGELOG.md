@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.8] — 2026-05-18
+
+### Added
+
+- `assets/demo-wordstat.png` — static demo screenshot showing a real Wordstat query in Claude (user prompt → `wordstat_query` tool call → JSON output with real frequency data → SEO insight). Placed at top of README, between tagline and Quickstart.
+
 ## [0.1.7] — 2026-05-18
 
 ### Fixed
@@ -46,7 +52,8 @@ Initial public release.
   - Glama crawler topics (`mcp`, `model-context-protocol`)
   - awesome-mcp-servers PR via `scripts/insert_awesome_mcp_entry.py` (idempotent)
 
-[Unreleased]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.8...HEAD
+[0.1.8]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/artgas1/xmlriver-mcp/releases/tag/v0.1.5
