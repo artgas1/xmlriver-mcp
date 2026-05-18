@@ -99,13 +99,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MCP_FAN_OUT_TOKEN }}
         run: |
-          # Search for any existing PR в awesome-mcp от artgas1
+          # Search for OPEN PR only — closed/merged PR should not block re-opening
+          # (we may have closed an old PR after major changes, or upstream merged ours
+          #  and we now have legitimate updates to push)
           OWNER="${{ github.repository_owner }}"
           REPO="${{ github.event.repository.name }}"
           EXISTING=$(gh pr list \
             --repo punkpeye/awesome-mcp-servers \
             --search "$OWNER/$REPO in:title" \
-            --state all \
+            --state open \
             --json number,state \
             --limit 5)
           if echo "$EXISTING" | jq -e 'length > 0' >/dev/null; then
