@@ -29,6 +29,14 @@ Gives Claude / Cursor / Windsurf direct access to:
 
 **First MCP** for XMLRiver — fills a gap for Russian SEO research and Yandex-aware analysis. Pay-as-you-go (~25 ₽ / 1000 requests on Basic tariff).
 
+## Demo
+
+<p align="center">
+  <img src="assets/demo-wordstat.png" width="720" alt="xmlriver-mcp wordstat demo in Claude">
+</p>
+
+Claude queries `wordstat_query` and parses real frequency data from Yandex. Same flow works for `google_search`, `yandex_search`, indexing checks, and account ops.
+
 ## Quickstart
 
 ```bash
