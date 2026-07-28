@@ -109,7 +109,7 @@ Edit `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
 | `google_search` | Parse Google SERP for a query — country, language, device, page, date filter, extra blocks (ads, FAQ, knowledge graph, AI Overview) |
 | `yandex_search` | Parse Yandex SERP — region, language, device, page, date filter, extra blocks |
 | `yandex_search_api_v2` | Yandex Search API v2 (official) via XMLRiver — cleaner structured output |
-| `wordstat_query` | Yandex Wordstat keyword frequency, device breakdown, history, similar queries |
+| `wordstat_query` | Yandex Wordstat keyword frequency + similar queries, or demand dynamics by month/week/day |
 | `check_url_indexed` | Check if URL is indexed in Google or Yandex |
 | `get_balance` | Current XMLRiver balance in rubles |
 | `get_tariff` | Current XMLRiver tariff name (Basic / Pro / Mega / Giga) |

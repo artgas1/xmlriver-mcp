@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9] — 2026-07-29
+
+### Fixed
+
+- `wordstat_query` history mode never worked. The tool sent `history=month`, but the
+  XMLRiver endpoint expects `pagetype=history` together with `period`. An unknown
+  parameter is silently ignored upstream, so the call returned a normal words-mode
+  response with HTTP 200 — the documented `history` field simply never appeared, and
+  nothing surfaced the failure. The response parser had the mirror-image bug: it read
+  only `popular`/`associations` and keyed on `result["history"]`, which no XMLRiver
+  response contains in any mode.
+
+### Added
+
+- `start` / `end` parameters (ISO `YYYY-MM-DD`) for the history window. They are
+  required in practice: without an explicit window the endpoint returns a stale range
+  that stops several months short of the available data.
+- Automatic window alignment per period — month snaps to 1st/last day, week to
+  Monday/Sunday, and the current incomplete period is never requested. Windows shorter
+  than the upstream three-period minimum are widened backwards instead of failing with
+  `{"code": "400"}`.
+- `daily` history period, alongside the existing `monthly` / `weekly`.
+- `share_of_all_queries` on each history point (the phrase's share of all Yandex
+  queries) — useful for seasonality work, since it controls for total search growth.
+- `window` in the response, echoing the range actually requested upstream.
+- `tests/unit/test_wordstat.py` — the module had no test coverage at all.
+
+### Changed
+
+- History and words are now explicitly documented as **mutually exclusive** modes: a
+  `pagetype=history` response carries no phrases, so `history_period != "none"` returns
+  `total_shows` (from `totalValue`) plus `history`, and no `containing_phrases` /
+  `similar_queries`.
+- History point dates are normalized to one shape. Upstream labels them three different
+  ways — `{year, month}` with a 0-based month for months, `x` for weeks, `day` for days.
+
+### Removed
+
+- `device_breakdown` from the documented response. It keyed on a `device` field that
+  XMLRiver does not return, so it was never populated — same defect class as `history`.
+
 ## [0.1.8] — 2026-05-18
 
 ### Added
