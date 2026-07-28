@@ -81,7 +81,20 @@ jobs:
         env:
           VERSION: ${{ needs.publish-pypi.outputs.version }}
         run: |
-          uvx --refresh --from "xmlriver-mcp==${VERSION}" python -c "import xmlriver_mcp; print('OK', xmlriver_mcp.__version__)"
+          # PyPI's simple index — the one installers read — lags the upload by up to a
+          # couple of minutes, so a smoke test fired right after publish resolves
+          # nothing and fails a release that actually succeeded. Retry until the
+          # index catches up; only a persistent miss is a real failure.
+          for attempt in $(seq 1 10); do
+            if uvx --refresh --from "xmlriver-mcp==${VERSION}" \
+                 python -c "import xmlriver_mcp; print('OK', xmlriver_mcp.__version__)"; then
+              exit 0
+            fi
+            echo "attempt ${attempt}: ${VERSION} not resolvable yet, waiting for the index…"
+            sleep 30
+          done
+          echo "::error::xmlriver-mcp==${VERSION} still not installable after ~5 minutes"
+          exit 1
 
   awesome-mcp-pr:
     needs: publish-pypi
