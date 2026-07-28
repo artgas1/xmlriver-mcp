@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.10] — 2026-07-29
+
+### Fixed
+
+- `xmlriver_mcp.__version__` was a hardcoded `"0.1.0"` that nobody ever bumped — the
+  package shipped nine releases while the module kept claiming its first one. It now
+  reads the installed distribution metadata, so a second copy of the number cannot
+  exist to drift in the first place. A source checkout that was never installed falls
+  back to `0.0.0.dev0` rather than raising on import.
+- The release smoke test asserted nothing: it printed `__version__` as its result and
+  passed regardless of the value, which is precisely why the stale constant survived
+  nine releases while being displayed on every one of them. It now fails on a mismatch
+  between the version installed from PyPI and the version the package reports.
+
+### Added
+
+- `tests/unit/test_version.py` — the regression guard is that `__version__` must equal
+  the installed distribution's version, which a hardcoded constant fails the moment it
+  drifts. Also covers the uninstalled fallback and the distribution-name lookup.
+
 ## [0.1.9] — 2026-07-29
 
 ### Fixed

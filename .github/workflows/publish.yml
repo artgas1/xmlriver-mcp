@@ -85,16 +85,30 @@ jobs:
           # couple of minutes, so a smoke test fired right after publish resolves
           # nothing and fails a release that actually succeeded. Retry until the
           # index catches up; only a persistent miss is a real failure.
+          resolved=""
           for attempt in $(seq 1 10); do
-            if uvx --refresh --from "xmlriver-mcp==${VERSION}" \
-                 python -c "import xmlriver_mcp; print('OK', xmlriver_mcp.__version__)"; then
-              exit 0
+            if uvx --refresh --from "xmlriver-mcp==${VERSION}" python -c "import xmlriver_mcp"; then
+              resolved="yes"
+              break
             fi
             echo "attempt ${attempt}: ${VERSION} not resolvable yet, waiting for the index…"
             sleep 30
           done
-          echo "::error::xmlriver-mcp==${VERSION} still not installable after ~5 minutes"
-          exit 1
+          if [ -z "${resolved}" ]; then
+            echo "::error::xmlriver-mcp==${VERSION} still not installable after ~5 minutes"
+            exit 1
+          fi
+
+          # Assert, don't just print. A check that reports a number without comparing it
+          # is decoration — that is how __version__ sat at 0.1.0 for nine releases while
+          # this step happily printed it as the result.
+          uvx --from "xmlriver-mcp==${VERSION}" python -c "
+          import sys, xmlriver_mcp
+          got = xmlriver_mcp.__version__
+          if got != '${VERSION}':
+              sys.exit(f'version mismatch: installed ${VERSION}, package reports {got}')
+          print('OK', got)
+          "
 
   awesome-mcp-pr:
     needs: publish-pypi
