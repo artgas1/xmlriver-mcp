@@ -82,6 +82,14 @@ async def yandex_search(
             ),
         ),
     ] = None,
+    mobile_os: Annotated[
+        Literal["ios", "android"] | None,
+        Field(description="OS to emulate when device='mobile'. Ignored otherwise."),
+    ] = None,
+    highlights: Annotated[
+        bool,
+        Field(description="Wrap query words matched in title/snippet in <hlword> tags."),
+    ] = False,
     filter_duplicates: Annotated[
         bool,
         Field(description="Filter near-duplicate results. Default False (Yandex default)."),
@@ -125,6 +133,10 @@ async def yandex_search(
         params["additional"] = additional_blocks
     if filter_duplicates:
         params["filter"] = 1
+    if mobile_os is not None:
+        params["os"] = mobile_os
+    if highlights:
+        params["highlights"] = 1
 
     result = await fetch_xml("/search_yandex/xml", **params)
     if isinstance(result, dict):

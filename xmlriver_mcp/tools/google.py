@@ -101,6 +101,32 @@ async def google_search(
             ),
         ),
     ] = None,
+    mobile_os: Annotated[
+        Literal["ios", "android"] | None,
+        Field(description="OS to emulate when device='mobile'. Ignored otherwise."),
+    ] = None,
+    show_similar: Annotated[
+        bool,
+        Field(
+            description=(
+                "Show near-duplicate results that Google hides by default. False (default) "
+                "keeps Google's own behaviour; True sends filter=0."
+            )
+        ),
+    ] = False,
+    highlights: Annotated[
+        bool,
+        Field(description="Wrap query words matched in title/snippet in <hlword> tags."),
+    ] = False,
+    no_autocorrect: Annotated[
+        bool,
+        Field(
+            description=(
+                "Search the query verbatim, without Google's spelling correction (nfpr=1). "
+                "Use when checking how a misspelling actually ranks."
+            )
+        ),
+    ] = False,
     ai_overview: Annotated[
         bool,
         Field(
@@ -151,6 +177,14 @@ async def google_search(
         params["additional"] = additional_blocks
     if ai_overview:
         params["ai"] = 1
+    if mobile_os is not None:
+        params["os"] = mobile_os
+    if show_similar:
+        params["filter"] = 0
+    if highlights:
+        params["highlights"] = 1
+    if no_autocorrect:
+        params["nfpr"] = 1
 
     result = await fetch_xml("/search/xml", **params)
     if isinstance(result, dict):  # error

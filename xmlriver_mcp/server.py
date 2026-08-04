@@ -48,6 +48,8 @@ def _register_tools() -> None:
     from xmlriver_mcp.tools import (  # noqa: F401
         account,
         google,
+        maps,
+        suggestions,
         utility,
         wordstat,
         yandex,
