@@ -110,6 +110,8 @@ Edit `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
 | `yandex_search` | Parse Yandex SERP — region, language, device, page, date filter, extra blocks |
 | `yandex_search_api_v2` | Yandex Search API v2 (official) via XMLRiver — cleaner structured output |
 | `wordstat_query` | Yandex Wordstat keyword frequency + similar queries, or demand dynamics by month/week/day |
+| `search_suggestions` | Search-box autocomplete from Google or Yandex, 1–50 phrases per call. Surfaces long-tail phrasings that carry no Wordstat frequency at all |
+| `google_maps_search` | Google Maps places around a coordinate (zoom + coords required). ⚠️ See caveat below |
 | `check_url_indexed` | Check if URL is indexed in Google or Yandex |
 | `get_balance` | Current XMLRiver balance in rubles |
 | `get_tariff` | Current XMLRiver tariff name (Basic / Pro / Mega / Giga) |
@@ -117,6 +119,16 @@ Edit `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
 | `get_cost` | Cost per 1000 requests for a given engine (google / yandex / yaxml / wordstat) |
 
 All tools are **read-only** (annotated with `readOnlyHint: true`). No destructive operations.
+
+⚠️ **`google_maps_search` is unverified against a live response.** Every `setab=maps` request
+answered `code 500` while it was written (2026-08-04), including a deliberately invalid one that
+should have returned `code 108` — plain Google and Yandex searches worked in the same minutes, so
+the mode appears unavailable service-side. The request shape and response parsing follow the
+documentation and are covered by unit tests; both still need a live check.
+
+**Deliberately not wrapped:** `raw=page` (returns the full HTML page — bypasses parsing and
+returns megabytes into the model's context) and the deferred-response mode (`delayed` / `req_id`)
+— an MCP call is synchronous, so a request id the caller must poll for has nowhere useful to go.
 
 ## Authentication
 
@@ -143,6 +155,7 @@ Use `get_balance` and `get_cost` to monitor spend before bulk operations.
 - **SEO position tracking** — `yandex_search(query="...", region=213)` for own/competitor ranking
 - **Keyword research** — `wordstat_query(query="купить iphone", history_period="monthly")` for demand validation + seasonality
 - **Featured snippet hunting** — `google_search(additional_blocks="faqsnippet,knowledge_graph,zeroposition")` to see what owns the answer box
+- **Long-tail discovery** — `search_suggestions(phrases=[...])` with a prefix sweep (seed + each letter of the alphabet) pulls phrasings Wordstat never reports
 - **Indexation monitoring** — `check_url_indexed(url="https://your-site.com/new-page")` after publishing
 - **Cross-region comparison** — same query, different `region`/`country` for Yandex/Google to see geographic variance
 

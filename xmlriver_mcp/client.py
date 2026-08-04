@@ -155,3 +155,39 @@ async def close_client() -> None:
     if _client is not None:
         await _client.aclose()
         _client = None
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
+    reraise=True,
+)
+async def post_json(path: str, payload: dict[str, Any], **params: Any) -> dict[str, Any]:
+    """POST with a JSON body, returning the parsed JSON response.
+
+    Used by the search-suggestions endpoints (``setab=tips``), the only ones that
+    take a body: auth and mode stay in the query string, the phrases go in JSON.
+
+    XMLRiver reports API-level failures inside a 200 response
+    (``{"code": "104", "error": "…"}``), so those are converted into the same
+    structured error dict as transport failures instead of being returned as data.
+    """
+    client = _get_client()
+    merged_params: dict[str, Any] = {**_auth_params(), **params}
+    try:
+        response = await client.post(path, params=merged_params, json=payload)
+    except httpx.HTTPError as e:
+        return format_error("NETWORK", f"{type(e).__name__}: {e}")
+
+    if response.status_code >= 400:
+        return format_error(f"HTTP_{response.status_code}", response.text)
+
+    try:
+        data = response.json()
+    except ValueError:
+        return format_error("BAD_JSON", response.text)
+
+    if isinstance(data, dict) and data.get("error"):
+        return format_error(str(data.get("code", "API")), str(data["error"]))
+    return data

@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-04
+
+### Added
+
+- `search_suggestions` — search-box autocomplete for Google and Yandex
+  (`POST …?setab=tips`, 1–50 phrases per call). These are the only endpoints in
+  the API that take a request body, which is why they were missing: the whole
+  client spoke GET. Billing is per phrase, so over-limit and empty batches are
+  rejected before anything reaches the wire.
+- `google_maps_search` — places around a coordinate (`setab=maps` + `zoom` +
+  `coords`), with its own parser for the `<maps>` block. ⚠️ Unverified live:
+  the mode answered `code 500` on every attempt while this was written, see
+  the note in README.
+- `post_json` transport, which also converts XMLRiver's in-body errors
+  (`{"code": …, "error": …}` inside an HTTP 200) into structured error dicts.
+- Documented parameters that were missing: `google_search` gains `mobile_os`,
+  `show_similar` (`filter=0`), `highlights`, `no_autocorrect` (`nfpr=1`);
+  `yandex_search` gains `mobile_os` and `highlights`.
+
+### Notes
+
+- `raw=page` and the deferred-response mode (`delayed` / `req_id`) are
+  deliberately not wrapped — see README for why.
+
 ## [0.1.10] — 2026-07-29
 
 ### Fixed
