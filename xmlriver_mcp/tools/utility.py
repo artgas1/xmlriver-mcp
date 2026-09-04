@@ -46,8 +46,15 @@ async def check_url_indexed(
 ) -> dict[str, Any]:
     """Check if a URL is indexed in Google or Yandex.
 
-    Internally uses `url:<URL>` operator with `inindex=1` flag to xmlriver
-    (forces fresh index check, not cache).
+    Sends the bare URL as the query with `inindex=1` (forces a fresh index
+    check, not cache). It does NOT use the `url:` search operator.
+
+    ⚠️ Do not reconstruct this call by hand as `url:<URL>` together with
+    `inindex=1` — that combination returns "no results" even for pages that
+    are definitely indexed (verified against https://ya.ru on 2026-09-04), so
+    it reports everything as not indexed. Two combinations work and agree:
+    the bare URL with `inindex=1` (what this tool does) or the `url:` operator
+    without `inindex`.
 
     Use this for: SEO audits, indexation monitoring, "did Google find my new page?".
 
