@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-09-24
+
 ### Fixed
 
 - Ads were dropped from every SERP: the parser read only `<results>` and
@@ -157,7 +159,8 @@ Initial public release.
   - Glama crawler topics (`mcp`, `model-context-protocol`)
   - awesome-mcp-servers PR via `scripts/insert_awesome_mcp_entry.py` (idempotent)
 
-[Unreleased]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/artgas1/xmlriver-mcp/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/artgas1/xmlriver-mcp/compare/v0.2.0...v0.2.1
 [0.1.8]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.5...v0.1.6
