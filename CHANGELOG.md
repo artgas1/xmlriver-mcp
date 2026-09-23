@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-09-24
+
+### Fixed
+
+- Transport failures were never retried. `fetch_text`, `fetch_json` and
+  `post_json` carried a `tenacity` decorator, but each caught `httpx.HTTPError`
+  itself, so a dropped connection or a timeout went straight back as `NETWORK`.
+  The retry now wraps only the HTTP call: GETs (search, balance, Wordstat)
+  repeat a refused connection or a timeout, up to 3 attempts (4 for search,
+  shared with «Выполните перезапрос»). Suggestions are billed per phrase, so
+  their POST is repeated only when the request never left — refused
+  connection, connect or pool timeout — and never after a read timeout.
+
 ## [0.2.1] — 2026-09-24
 
 ### Fixed
@@ -159,7 +172,8 @@ Initial public release.
   - Glama crawler topics (`mcp`, `model-context-protocol`)
   - awesome-mcp-servers PR via `scripts/insert_awesome_mcp_entry.py` (idempotent)
 
-[Unreleased]: https://github.com/artgas1/xmlriver-mcp/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/artgas1/xmlriver-mcp/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/artgas1/xmlriver-mcp/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/artgas1/xmlriver-mcp/compare/v0.2.0...v0.2.1
 [0.1.8]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.6...v0.1.7
