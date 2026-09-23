@@ -47,14 +47,18 @@ Error response:
 from __future__ import annotations
 
 import contextlib
+import html
 import re
 import xml.etree.ElementTree as ET
+from html.entities import html5
 from typing import Any
 from urllib.parse import unquote
 
 # Ad block element → key in the parsed output.
 _AD_BLOCKS = {"topads": "top_ads", "bottomads": "bottom_ads", "rightads": "right_ads"}
 _MARKUP = re.compile(r"<!--.*?-->|</?[A-Za-z][^>]*>", re.DOTALL)
+# XMLRiver turns the ';' that closes an HTML entity in ad text into ',' ("&nbsp,...").
+_COMMA_ENTITY = re.compile(r"&(#?[A-Za-z0-9]+),")
 
 
 def _text_or_none(elem: ET.Element | None) -> str | None:
@@ -82,12 +86,21 @@ def _ad_text(elem: ET.Element | None) -> str | None:
 
     Unlike organic results, XMLRiver percent-encodes the markup inside ads
     (``%3Cb%3EiPhone%3C/b%3E``, ``%3C!-- --%3E``), so decode it first and then
-    drop the tags and comments it turns into.
+    drop the tags and comments it turns into. HTML entities are unescaped too.
     """
     raw = _text_or_none(elem)
     if raw is None:
         return None
-    return " ".join(_MARKUP.sub("", unquote(raw)).split()) or None
+    text = _COMMA_ENTITY.sub(_restore_entity_semicolon, _MARKUP.sub("", unquote(raw)))
+    return " ".join(html.unescape(text).split()) or None
+
+
+def _restore_entity_semicolon(match: re.Match[str]) -> str:
+    """``&nbsp,`` → ``&nbsp;``, only for real entity names: "AT&T," stays as is."""
+    name = match.group(1)
+    if name.startswith("#") or f"{name};" in html5:
+        return f"&{name};"
+    return match.group(0)
 
 
 def _parse_ads(block: ET.Element) -> list[dict[str, Any]]:

@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   получен.» is now repeated with a pause (up to 4 attempts) instead of being
   returned on the first try. The old `tenacity` decorator on `fetch_xml` never
   fired: the transport exception was caught inside the function it wrapped.
+- HTML entities in ad text are unescaped. XMLRiver closes them with a comma
+  instead of a semicolon (`&nbsp,`), which is restored only for real entity
+  names, so `AT&T,` is left alone.
 
 ## [0.2.0] — 2026-08-04
 
