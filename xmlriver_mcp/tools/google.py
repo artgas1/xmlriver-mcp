@@ -94,10 +94,12 @@ async def google_search(
         str | None,
         Field(
             description=(
-                "Comma-separated extra blocks to parse: "
-                "'topads,bottomads,faqsnippet,rq,rs,knowledge_graph,sitelinks,"
-                "g_news,g_videos,g_inlineshopping,searchsters,scroller,extended_snippet'. "
-                "Each adds parsing cost on XMLRiver side but no extra charge."
+                "Comma-separated extra blocks (XMLRiver `additional`). Ads: "
+                "'topads,bottomads' (Google takes no y_ prefix) — returned as `top_ads` / "
+                "`bottom_ads`. Other values: faqsnippet, localresultsplace, rq, rs, es, "
+                "cachelink, google_first_position, sitelinks, oneline_sitelinks, "
+                "knowledge_graph, g_inlineshopping, g_podcasts, app, g_news, g_videos, "
+                "g_discuss. Each adds parsing cost on XMLRiver side but no extra charge."
             ),
         ),
     ] = None,
@@ -152,6 +154,8 @@ async def google_search(
             - `results` — list of organic results with `position`, `url`, `title`, `snippet`
             - `addresults` — featured_snippet, related_questions, related_searches,
               knowledge_graph (if present and requested via `additional_blocks`)
+            - `top_ads` / `bottom_ads` — ads (`position`, `url`, `ads_url`, `title`,
+              `snippet`) when the response carries them; request with 'topads,bottomads'
             - Or `isError: True` on XMLRiver error (15 = no results, 110 = rate limit, etc).
 
     Examples:

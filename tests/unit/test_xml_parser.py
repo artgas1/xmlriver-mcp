@@ -67,6 +67,89 @@ SAMPLE_KNOWLEDGE_GRAPH_XML = """<?xml version="1.0" encoding="utf-8"?>
 """
 
 
+# <bottomads> and the empty <rightads> placeholder are trimmed from live Yandex
+# answers ("купить iphone 16", lr=213, device=desktop,
+# additional=y_topads,y_bottomads,y_rightads, 24.09.2026); <topads> with sitelinks
+# follows the shape in https://xmlriver.com/apiydoc/apiy-adv/. Note the
+# percent-encoded markup in ad text — organic results don't have it.
+SAMPLE_ADS_XML = """<?xml version="1.0" encoding="UTF-8" ?>
+<yandexsearch version="1.0">
+  <response date="20260923T212600">
+    <found priority="all">1000000</found>
+    <advcount>1</advcount>
+    <topads>
+      <query>
+        <url>apple.com</url>
+        <title>%3Cb%3EiPhone%3C/b%3E. Официальный сайт Apple</title>
+        <snippet>%3C!-- --%3E Новые %3Cb%3EiPhone%3C/b%3E 16. Скидка до 15% в сентябре.</snippet>
+        <sitelinks>
+          <sitelink><title>Каталог</title></sitelink>
+          <sitelink><title>Доставка</title></sitelink>
+        </sitelinks>
+      </query>
+    </topads>
+    <bottomads>
+      <query>
+        <url>http://msk.stores-apple.com</url><adsurl></adsurl>
+        <title>Смартфон Apple %3Cb%3EiPhone%3C/b%3E %3Cb%3E16%3C/b%3E по выгодной цене
+          %3Cb%3Eкупить%3C/b%3E в %3Cb%3EМоскве%3C/b%3E</title>
+        <price></price><position></position>
+        <snippet>Заказывайте уже сейчас %3Cb%3EАйфон%3C/b%3E %3Cb%3E16%3C/b%3E
+          по доступной цене в %3Cb%3EМоскве%3C/b%3E.</snippet>
+      </query>
+      <query>
+        <url>http://cifrus.ru</url><adsurl></adsurl>
+        <title>Мобильные телефоны Apple %3Cb%3EiPhone%3C/b%3E %3Cb%3E16%3C/b%3E в Москве</title>
+        <price></price><position></position>
+        <snippet>Большой выбор. Низкие цены. Доставка</snippet>
+      </query>
+    </bottomads>
+    <rightads><query><url></url><img></img></query></rightads>
+    <results>
+      <grouping>
+        <page first="1" last="10">0</page>
+        <group><doccount>1</doccount><doc>
+          <url>https://store77.net/telefony_apple/</url>
+          <title>Купить Телефоны Apple в Москве</title>
+          <passages><passage>Телефоны Apple с доставкой и гарантией.</passage></passages>
+        </doc></group>
+      </grouping>
+    </results>
+  </response>
+</yandexsearch>
+"""
+
+
+def test_parse_ads_blocks_are_kept():
+    """Top/bottom ads and advcount reach the output instead of being dropped."""
+    result = parse_search_xml(SAMPLE_ADS_XML)
+
+    assert result["advcount"] == 1
+    assert [ad["url"] for ad in result["top_ads"]] == ["apple.com"]
+    assert [ad["url"] for ad in result["bottom_ads"]] == [
+        "http://msk.stores-apple.com",
+        "http://cifrus.ru",
+    ]
+    # Live desktop answers put an empty <query> into <rightads>; it is not an ad
+    assert result["right_ads"] == []
+    # Organic results are unaffected by the ad blocks around them
+    assert result["results_count"] == 1
+
+
+def test_parse_ads_text_is_decoded_plain_text():
+    """Percent-encoded <b>/comment markup in ads becomes plain text."""
+    result = parse_search_xml(SAMPLE_ADS_XML)
+    top = result["top_ads"][0]
+    bottom = result["bottom_ads"][0]
+
+    assert top["position"] == 1
+    assert top["title"] == "iPhone. Официальный сайт Apple"
+    assert top["snippet"] == "Новые iPhone 16. Скидка до 15% в сентябре."
+    assert [sl["title"] for sl in top["sitelinks"]] == ["Каталог", "Доставка"]
+    assert bottom["title"] == "Смартфон Apple iPhone 16 по выгодной цене купить в Москве"
+    assert "ads_url" not in bottom  # empty <adsurl> is not echoed
+
+
 def test_parse_success_returns_results():
     """Successful response with 2 organic results."""
     result = parse_search_xml(SAMPLE_SUCCESS_XML)

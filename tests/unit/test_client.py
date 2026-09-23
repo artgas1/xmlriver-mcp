@@ -49,6 +49,37 @@ async def test_fetch_xml_returns_error_on_http_error():
         assert result["errorCode"] == "HTTP_403"
 
 
+REREQUEST_XML = (
+    '<?xml version="1.0" encoding="utf-8"?><yandexsearch version="1.0"><response>'
+    '<error code="500">Выполните перезапрос. Ответ от поисковой системы не получен.</error>'
+    "</response></yandexsearch>"
+)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [200, 500])
+async def test_fetch_xml_repeats_rerequest_answer(monkeypatch, status):
+    """The transient «Выполните перезапрос» answer is repeated until the SERP arrives."""
+    from tenacity import wait_none
+
+    import xmlriver_mcp.client as client_mod
+
+    monkeypatch.setattr(client_mod._get_xml.retry, "wait", wait_none())
+
+    with respx.mock(base_url="http://xmlriver.com") as mock:
+        route = mock.get("/search_yandex/xml").mock(
+            side_effect=[
+                httpx.Response(status, text=REREQUEST_XML),
+                httpx.Response(status, text=REREQUEST_XML),
+                httpx.Response(200, text="<xml>serp</xml>"),
+            ]
+        )
+        result = await client_mod.fetch_xml("/search_yandex/xml", query="test")
+
+    assert result == "<xml>serp</xml>"
+    assert route.call_count == 3
+
+
 @pytest.mark.asyncio
 async def test_fetch_text_parses_balance():
     """fetch_text returns plain string for account endpoints."""
