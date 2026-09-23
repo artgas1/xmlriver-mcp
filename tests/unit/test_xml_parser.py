@@ -150,6 +150,37 @@ def test_parse_ads_text_is_decoded_plain_text():
     assert "ads_url" not in bottom  # empty <adsurl> is not echoed
 
 
+# Snippet as it came live ("купить пластиковые окна", lr=213, 24.09.2026): XMLRiver
+# replaced the ';' of "&nbsp;" with ','. Seen in 2 of 144 ad fields over 36 requests.
+# The second ad is a synthetic control: a plain "&" before a comma is not an entity.
+SAMPLE_AD_ENTITY_XML = """<?xml version="1.0" encoding="UTF-8" ?>
+<yandexsearch version="1.0"><response>
+  <bottomads>
+    <query>
+      <url>http://i-okna.ru</url>
+      <title>Пластиковые окна РЕХАУ в Москве</title>
+      <snippet>Рехау от производителя в %3Cb%3EМоскве%3C/b%3E и области.%3C!-- --%3E&amp;nbsp,...
+        %3C!-- --%3EДвухстворчатое %3Cb%3Eпластиковое%3C/b%3E %3Cb%3Eокно%3C/b%3E</snippet>
+    </query>
+    <query>
+      <url>http://example.com</url>
+      <title>Связь AT&amp;T, Wi-Fi &amp;quot;дома&amp;quot;</title>
+    </query>
+  </bottomads>
+</response></yandexsearch>
+"""
+
+
+def test_parse_ads_html_entities_become_text():
+    """No raw HTML entity survives in ad text, and a bare "&" before a comma is kept."""
+    first, second = parse_search_xml(SAMPLE_AD_ENTITY_XML)["bottom_ads"]
+
+    assert first["snippet"] == (
+        "Рехау от производителя в Москве и области. ... Двухстворчатое пластиковое окно"
+    )
+    assert second["title"] == 'Связь AT&T, Wi-Fi "дома"'
+
+
 def test_parse_success_returns_results():
     """Successful response with 2 organic results."""
     result = parse_search_xml(SAMPLE_SUCCESS_XML)
