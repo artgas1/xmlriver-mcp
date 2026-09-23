@@ -56,6 +56,17 @@ def format_error(code: str, text: str) -> dict[str, Any]:
     }
 
 
+# Transport failures worth repeating. A GET is idempotent, so a timeout qualifies
+# too; a paid POST (suggestions are billed per phrase) is repeated only when the
+# request provably never reached XMLRiver — a read timeout may already be billed.
+_GET_RETRY_ERRORS = (httpx.TimeoutException, httpx.ConnectError)
+_UNSENT_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout)
+_RETRY_WAIT = wait_exponential(multiplier=1, min=2, max=10)
+
+# The retrying helpers below raise; the public fetch_* catch the final failure and
+# return a structured error. A decorator on a function that catches its own
+# exceptions never fires — that is how every retry here was dead until 0.2.2.
+
 REREQUEST_MARKER = "Выполните перезапрос"
 
 
@@ -80,8 +91,8 @@ def _asks_to_rerequest(response: httpx.Response) -> bool:
 
 @retry(
     stop=stop_after_attempt(4),
-    wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type(_RerequestError),
+    wait=_RETRY_WAIT,
+    retry=retry_if_exception_type((_RerequestError, *_GET_RETRY_ERRORS)),
     reraise=True,
 )
 async def _get_xml(path: str, params: dict[str, Any]) -> httpx.Response:
@@ -91,11 +102,32 @@ async def _get_xml(path: str, params: dict[str, Any]) -> httpx.Response:
     return response
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=_RETRY_WAIT,
+    retry=retry_if_exception_type(_GET_RETRY_ERRORS),
+    reraise=True,
+)
+async def _get(path: str, params: dict[str, Any]) -> httpx.Response:
+    return await _get_client().get(path, params=params)
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=_RETRY_WAIT,
+    retry=retry_if_exception_type(_UNSENT_ERRORS),
+    reraise=True,
+)
+async def _post(path: str, params: dict[str, Any], payload: dict[str, Any]) -> httpx.Response:
+    return await _get_client().post(path, params=params, json=payload)
+
+
 async def fetch_xml(path: str, **params: Any) -> str | dict[str, Any]:
     """GET request returning XML text body (or structured error dict).
 
-    "Выполните перезапрос" answers are repeated with a pause (up to 4 attempts);
-    if the last one still asks for it, that answer is returned as-is.
+    "Выполните перезапрос" answers and transport failures are repeated with a
+    pause (up to 4 attempts); if the last answer still asks for a re-request, it
+    is returned as-is.
 
     Args:
         path: URL path relative to API_BASE (e.g. ``/search/xml``)
@@ -118,21 +150,15 @@ async def fetch_xml(path: str, **params: Any) -> str | dict[str, Any]:
     return response.text
 
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
-    reraise=True,
-)
 async def fetch_text(path: str, **params: Any) -> str | dict[str, Any]:
     """GET request returning plain text (used for /api/get_balance, get_cost, etc).
 
+    Transport failures are repeated with a pause (up to 3 attempts).
     Returns plain text body or structured error dict.
     """
-    client = _get_client()
     merged_params: dict[str, Any] = {**_auth_params(), **params}
     try:
-        response = await client.get(path, params=merged_params)
+        response = await _get(path, merged_params)
     except httpx.HTTPError as e:
         return format_error("NETWORK", f"{type(e).__name__}: {e}")
 
@@ -142,28 +168,22 @@ async def fetch_text(path: str, **params: Any) -> str | dict[str, Any]:
     return response.text.strip()
 
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
-    reraise=True,
-)
 async def fetch_json(path: str, **params: Any) -> dict[str, Any]:
     """GET request returning JSON (used for Wordstat New endpoint).
 
+    Transport failures are repeated with a pause (up to 3 attempts).
     Returns parsed JSON dict or structured error dict.
 
     XMLRiver JSON endpoints may return HTTP 200 with `{"code": ..., "error": ...}`
     body on logical errors — we detect this and convert to structured error.
     """
-    client = _get_client()
     # Drop None values so callers can pass optional params idiomatically
     merged_params: dict[str, Any] = {
         **_auth_params(),
         **{k: v for k, v in params.items() if v is not None},
     }
     try:
-        response = await client.get(path, params=merged_params)
+        response = await _get(path, merged_params)
     except httpx.HTTPError as e:
         return format_error("NETWORK", f"{type(e).__name__}: {e}")
 
@@ -190,26 +210,21 @@ async def close_client() -> None:
         _client = None
 
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
-    reraise=True,
-)
 async def post_json(path: str, payload: dict[str, Any], **params: Any) -> dict[str, Any]:
     """POST with a JSON body, returning the parsed JSON response.
 
     Used by the search-suggestions endpoints (``setab=tips``), the only ones that
     take a body: auth and mode stay in the query string, the phrases go in JSON.
+    Billed per phrase, so only a request that never left (refused connection,
+    connect or pool timeout) is repeated — never a read timeout.
 
     XMLRiver reports API-level failures inside a 200 response
     (``{"code": "104", "error": "…"}``), so those are converted into the same
     structured error dict as transport failures instead of being returned as data.
     """
-    client = _get_client()
     merged_params: dict[str, Any] = {**_auth_params(), **params}
     try:
-        response = await client.post(path, params=merged_params, json=payload)
+        response = await _post(path, merged_params, payload)
     except httpx.HTTPError as e:
         return format_error("NETWORK", f"{type(e).__name__}: {e}")
 
