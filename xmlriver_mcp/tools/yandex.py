@@ -76,9 +76,12 @@ async def yandex_search(
         str | None,
         Field(
             description=(
-                "Comma-separated extra blocks: "
-                "'topads,bottomads,faqsnippet,rq,rs,knowledge_graph,sitelinks,"
-                "extended_snippet,fast_links,related_searches'."
+                "Comma-separated extra blocks (XMLRiver `additional`). Ads: "
+                "'y_topads,y_bottomads,y_rightads' — returned as `top_ads`, `bottom_ads`, "
+                "`right_ads` plus `advcount`; use the y_ spelling, plain 'topads' drops "
+                "`advcount`. Other values: searchsters, searchsters_side, scroller, rs_y, "
+                "extended_snippet, displayed, y_cachelink, y_sitelinks, y_oneline_sitelinks, "
+                "knowledge_graph_y, y_fullsnippet, y_of, y_news."
             ),
         ),
     ] = None,
@@ -108,10 +111,19 @@ async def yandex_search(
     Returns:
         Dict with `results` (organic 10 items), `total_found`, `page`, `addresults`
         (related_questions, knowledge_graph, etc), or `isError: True` on failure.
+        Ads: `top_ads` / `bottom_ads` / `right_ads` (each ad: `position`, `url`,
+        `title`, `snippet`, optional `sitelinks`) for every ad block in the response,
+        and `advcount` — XMLRiver's count of ads in the top block. Request them with
+        `additional_blocks="y_topads,y_bottomads,y_rightads"`; Yandex rotates ads, so
+        two identical calls can differ. No key means no such block in this response.
 
     Examples:
         yandex_search(query="купить iphone", region=213)
         → top 10 organic for Moscow
+
+        yandex_search(query="купить пластиковые окна",
+                      additional_blocks="y_topads,y_bottomads,y_rightads")
+        → organic plus the ads shown above, below and beside them
 
         yandex_search(query="site:wildberries.ru игрушки", region=2)
         → site-restricted search for St. Petersburg

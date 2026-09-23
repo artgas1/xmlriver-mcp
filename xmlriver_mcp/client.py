@@ -56,14 +56,46 @@ def format_error(code: str, text: str) -> dict[str, Any]:
     }
 
 
+REREQUEST_MARKER = "Выполните перезапрос"
+
+
+class _RerequestError(Exception):
+    """XMLRiver answered "Выполните перезапрос"; carries the response for the last attempt."""
+
+    def __init__(self, response: httpx.Response) -> None:
+        super().__init__(response.status_code)
+        self.response = response
+
+
+def _asks_to_rerequest(response: httpx.Response) -> bool:
+    """XMLRiver's transient "no answer from the search engine" error.
+
+    It passes on a repeat 2-3 attempts later. Seen as HTTP 500 and as an <error>
+    inside HTTP 200; a real SERP never carries <error>, so a query that merely
+    contains the phrase is not mistaken for it.
+    """
+    body = response.text
+    return REREQUEST_MARKER in body and (response.status_code >= 500 or "<error" in body)
+
+
 @retry(
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(4),
     wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
+    retry=retry_if_exception_type(_RerequestError),
     reraise=True,
 )
+async def _get_xml(path: str, params: dict[str, Any]) -> httpx.Response:
+    response = await _get_client().get(path, params=params)
+    if _asks_to_rerequest(response):
+        raise _RerequestError(response)
+    return response
+
+
 async def fetch_xml(path: str, **params: Any) -> str | dict[str, Any]:
     """GET request returning XML text body (or structured error dict).
+
+    "Выполните перезапрос" answers are repeated with a pause (up to 4 attempts);
+    if the last one still asks for it, that answer is returned as-is.
 
     Args:
         path: URL path relative to API_BASE (e.g. ``/search/xml``)
@@ -72,10 +104,11 @@ async def fetch_xml(path: str, **params: Any) -> str | dict[str, Any]:
     Returns:
         XML response body as str, or structured error dict on HTTP failure.
     """
-    client = _get_client()
     merged_params: dict[str, Any] = {**_auth_params(), **params}
     try:
-        response = await client.get(path, params=merged_params)
+        response = await _get_xml(path, merged_params)
+    except _RerequestError as e:
+        response = e.response
     except httpx.HTTPError as e:
         return format_error("NETWORK", f"{type(e).__name__}: {e}")
 

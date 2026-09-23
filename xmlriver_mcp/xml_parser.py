@@ -6,6 +6,16 @@ Response shape:
     <yandexsearch version="1.0">
       <response date="20120928T103130">
         <found priority="all">206775197</found>
+        <advcount>1</advcount>
+        <topads>                        (also <bottomads>, <rightads>)
+          <query>
+            <url>...</url>
+            <adsurl>...</adsurl>
+            <title>%3Cb%3E...%3C/b%3E</title>
+            <snippet>...</snippet>
+            <sitelinks><sitelink><title>...</title></sitelink></sitelinks>
+          </query>
+        </topads>
         <addresults>
           <relatedQuestions>...</relatedQuestions>
           <knowledge_graph>...</knowledge_graph>
@@ -40,6 +50,11 @@ import contextlib
 import re
 import xml.etree.ElementTree as ET
 from typing import Any
+from urllib.parse import unquote
+
+# Ad block element → key in the parsed output.
+_AD_BLOCKS = {"topads": "top_ads", "bottomads": "bottom_ads", "rightads": "right_ads"}
+_MARKUP = re.compile(r"<!--.*?-->|</?[A-Za-z][^>]*>", re.DOTALL)
 
 
 def _text_or_none(elem: ET.Element | None) -> str | None:
@@ -62,6 +77,52 @@ def _strip_hlword(text: str | None) -> str | None:
     return re.sub(r"</?hlword>", "", text)
 
 
+def _ad_text(elem: ET.Element | None) -> str | None:
+    """Ad title/snippet as plain text.
+
+    Unlike organic results, XMLRiver percent-encodes the markup inside ads
+    (``%3Cb%3EiPhone%3C/b%3E``, ``%3C!-- --%3E``), so decode it first and then
+    drop the tags and comments it turns into.
+    """
+    raw = _text_or_none(elem)
+    if raw is None:
+        return None
+    return " ".join(_MARKUP.sub("", unquote(raw)).split()) or None
+
+
+def _parse_ads(block: ET.Element) -> list[dict[str, Any]]:
+    """Ads of one block (<topads>/<bottomads>/<rightads>), one per <query>."""
+    ads: list[dict[str, Any]] = []
+    for item in block.findall("query"):
+        url = _text_or_none(item.find("url"))
+        title = _ad_text(item.find("title"))
+        if not (url or title):
+            # Desktop SERPs carry an empty placeholder: <rightads><query><url></url>
+            # <img></img></query></rightads>. It is not an ad.
+            continue
+        ad: dict[str, Any] = {
+            "position": len(ads) + 1,
+            "url": url,
+            "title": title,
+            "snippet": _ad_text(item.find("snippet")),
+        }
+        ads_url = _text_or_none(item.find("adsurl"))
+        if ads_url:
+            ad["ads_url"] = ads_url
+        sitelinks = [
+            {
+                "url": _text_or_none(sl.find("url")),
+                "title": _ad_text(sl.find("title")),
+                "snippet": _ad_text(sl.find("snippet")),
+            }
+            for sl in item.findall("sitelinks/sitelink")
+        ]
+        if sitelinks:
+            ad["sitelinks"] = sitelinks
+        ads.append(ad)
+    return ads
+
+
 def parse_search_xml(xml_text: str) -> dict[str, Any]:
     """Parse XMLRiver search response into structured dict.
 
@@ -76,6 +137,11 @@ def parse_search_xml(xml_text: str) -> dict[str, Any]:
                     ...
                 ],
                 "addresults": {...},  # extra blocks (knowledge_graph, related, etc)
+                # Only when the response carries them:
+                "top_ads": [{"position", "url", "title", "snippet", "sitelinks"?}],
+                "bottom_ads": [...],
+                "right_ads": [...],
+                "advcount": int,  # XMLRiver's <advcount>: ads in the top block
             }
 
         On XMLRiver error::
@@ -221,5 +287,15 @@ def parse_search_xml(xml_text: str) -> dict[str, Any]:
         out["suggested_query"] = suggested_query
     if addresults:
         out["addresults"] = addresults
+
+    # Ads are siblings of <results>, not part of <addresults>. An element that is
+    # present but empty still yields an empty list: "requested, none shown".
+    for tag, key in _AD_BLOCKS.items():
+        block = response.find(tag)
+        if block is not None:
+            out[key] = _parse_ads(block)
+    advcount = (response.findtext("advcount") or "").strip()
+    if advcount.isdigit():
+        out["advcount"] = int(advcount)
 
     return out

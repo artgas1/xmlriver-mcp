@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Ads were dropped from every SERP: the parser read only `<results>` and
+  `<addresults>`, while `<topads>`, `<bottomads>`, `<rightads>` and `<advcount>`
+  are separate siblings. They now come back as `top_ads`, `bottom_ads`,
+  `right_ads` (`position`, `url`, `title`, `snippet`, `sitelinks`, `ads_url`) and
+  `advcount`. Ad text arrives percent-encoded (`%3Cb%3E…`) and is decoded to
+  plain text.
+- `additional_blocks` listed values the API does not document. Yandex ads are
+  `y_topads,y_bottomads,y_rightads` — with plain `topads` there is no
+  `advcount`; Google keeps `topads,bottomads` and loses the Yandex-only
+  `searchsters`/`scroller`/`extended_snippet` it never supported.
+- XMLRiver's transient «Выполните перезапрос. Ответ от поисковой системы не
+  получен.» is now repeated with a pause (up to 4 attempts) instead of being
+  returned on the first try. The old `tenacity` decorator on `fetch_xml` never
+  fired: the transport exception was caught inside the function it wrapped.
+
 ## [0.2.0] — 2026-08-04
 
 ### Added
