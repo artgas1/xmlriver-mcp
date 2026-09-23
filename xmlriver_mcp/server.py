@@ -56,14 +56,24 @@ def _register_tools() -> None:
     )
 
 
-def main() -> None:
-    """Entry point — used by the `xmlriver-mcp` console script."""
+def _configure_logging() -> None:
+    """INFO to stderr, except httpx.
+
+    httpx logs every request URL at INFO, and XMLRiver takes `user` and `key` in
+    the query string — under a daemon that put the key into its log file on
+    every call.
+    """
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         stream=sys.stderr,
     )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
+
+def main() -> None:
+    """Entry point — used by the `xmlriver-mcp` console script."""
+    _configure_logging()
     _register_tools()
     logger.info("xmlriver-mcp ready (stdio transport)")
     mcp.run()

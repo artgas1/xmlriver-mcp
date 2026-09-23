@@ -1,6 +1,8 @@
 """Unit tests for HTTP client — uses respx to mock httpx."""
 
 
+import logging
+
 import httpx
 import pytest
 import respx
@@ -45,6 +47,26 @@ async def test_fetch_xml_includes_auth_params():
         assert "user=12345" in str(request.url)
         assert "key=fakekey123" in str(request.url)
         assert "query=test" in str(request.url)
+
+
+@pytest.mark.asyncio
+async def test_server_logging_keeps_key_out_of_log(caplog):
+    """Under the server's logging setup no record carries the API key from the URL."""
+    from xmlriver_mcp.client import fetch_xml
+    from xmlriver_mcp.server import _configure_logging
+
+    httpx_logger = logging.getLogger("httpx")
+    previous = httpx_logger.level
+    try:
+        _configure_logging()
+        caplog.set_level(logging.INFO)
+        with respx.mock(base_url="http://xmlriver.com") as mock:
+            mock.get("/search/xml").mock(return_value=httpx.Response(200, text="<xml>ok</xml>"))
+            await fetch_xml("/search/xml", query="test")
+    finally:
+        httpx_logger.setLevel(previous)
+
+    assert not [r for r in caplog.records if "fakekey123" in r.getMessage()]
 
 
 @pytest.mark.asyncio

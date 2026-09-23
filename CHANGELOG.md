@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-09-24
+
+### Security
+
+- The XMLRiver key no longer reaches the log. The server logged at INFO, where
+  httpx writes every request URL, and XMLRiver takes `user` and `key` in the
+  query string: run as a daemon with stderr redirected to a file, every call
+  put the key into that file. The `httpx` logger is now held at WARNING; the
+  server's own messages stay at INFO. Logs written by earlier versions still
+  contain the key and should be redacted.
+
 ## [0.2.2] — 2026-09-24
 
 ### Fixed
@@ -172,7 +183,8 @@ Initial public release.
   - Glama crawler topics (`mcp`, `model-context-protocol`)
   - awesome-mcp-servers PR via `scripts/insert_awesome_mcp_entry.py` (idempotent)
 
-[Unreleased]: https://github.com/artgas1/xmlriver-mcp/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/artgas1/xmlriver-mcp/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/artgas1/xmlriver-mcp/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/artgas1/xmlriver-mcp/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/artgas1/xmlriver-mcp/compare/v0.2.0...v0.2.1
 [0.1.8]: https://github.com/artgas1/xmlriver-mcp/compare/v0.1.7...v0.1.8
