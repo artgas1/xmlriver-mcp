@@ -15,6 +15,7 @@ mcp-name: io.github.artgas1/xmlriver-mcp
 [![PyPI](https://img.shields.io/pypi/v/xmlriver-mcp.svg)](https://pypi.org/project/xmlriver-mcp/)
 [![Downloads](https://static.pepy.tech/badge/xmlriver-mcp/month)](https://pepy.tech/project/xmlriver-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![artgas1/xmlriver-mcp MCP server](https://glama.ai/mcp/servers/artgas1/xmlriver-mcp/badges/score.svg)](https://glama.ai/mcp/servers/artgas1/xmlriver-mcp)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
 ## What it does
